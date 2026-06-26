@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Bảng theo dõi nhân sự – Anh Mỹ Clinic</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f8f8f7;color:#1a1a18;padding:1rem;max-width:1100px;margin:0 auto}
+:root{
+  --color-text-primary:#1a1a18;
+  --color-text-secondary:#6b6b67;
+  --color-border-tertiary:#e5e4e0;
+  --color-border-secondary:#d0cfc9;
+  --color-background-primary:#ffffff;
+  --color-background-secondary:#f3f2ee;
+  --color-background-info:#eaf4f1;
+  --border-radius-md:6px;
+  --border-radius-lg:10px;
+}
+.hdr{padding:1rem 0 0.75rem;border-bottom:0.5px solid var(--color-border-tertiary);margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.hdr-left h2{font-size:18px;font-weight:600;color:var(--color-text-primary)}
+.hdr-left p{font-size:12px;color:var(--color-text-secondary);margin-top:2px}
+.admin-badge{background:#E1F5EE;color:#0F6E56;font-size:11px;padding:3px 10px;border-radius:var(--border-radius-md);font-weight:600}
+.logout-btn{background:transparent;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);padding:4px 10px;font-size:12px;cursor:pointer;color:var(--color-text-secondary);margin-left:6px}
+.logout-btn:hover{background:var(--color-background-secondary)}
+.week-nav{display:flex;align-items:center;gap:6px;margin-bottom:1rem}
+.week-nav button{background:#fff;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);padding:4px 12px;font-size:13px;cursor:pointer;color:var(--color-text-primary)}
+.week-nav button:hover{background:var(--color-background-secondary)}
+.week-label{font-size:14px;font-weight:600;color:var(--color-text-primary);flex:1;text-align:center}
+.tabs{display:flex;gap:5px;margin-bottom:1rem}
+.tab{padding:5px 14px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-tertiary);font-size:12px;cursor:pointer;color:var(--color-text-secondary);background:transparent}
+.tab.active{background:var(--color-background-secondary);color:var(--color-text-primary);border-color:var(--color-border-secondary);font-weight:600}
+.summary-bar{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:1rem}
+.sum-card{background:#fff;border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:0.6rem 0.75rem}
+.sum-card .val{font-size:20px;font-weight:700}
+.sum-card .lbl{font-size:10px;color:var(--color-text-secondary);margin-top:2px}
+.legend{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:0.75rem}
+.leg-item{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--color-text-secondary)}
+.leg-dot{width:8px;height:8px;border-radius:2px}
+.grid-wrap{overflow-x:auto;border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);background:#fff}
+.grid-head{display:grid;grid-template-columns:122px repeat(7,minmax(0,1fr));gap:0}
+.gh-cell{font-size:11px;font-weight:600;color:var(--color-text-secondary);text-align:center;padding:5px 2px;border-bottom:0.5px solid var(--color-border-tertiary);white-space:nowrap;background:#fafaf8}
+.gh-cell.today-col{color:#0F6E56}
+.staff-row{display:grid;grid-template-columns:122px repeat(7,minmax(0,1fr));border-bottom:0.5px solid var(--color-border-tertiary)}
+.staff-row:last-child{border-bottom:none}
+.staff-row:hover{background:#fafaf8}
+.staff-name{padding:6px 8px;font-size:12px;font-weight:600;color:var(--color-text-primary);display:flex;flex-direction:column;justify-content:center;border-right:0.5px solid var(--color-border-tertiary)}
+.staff-name span{font-size:10px;color:var(--color-text-secondary);font-weight:400}
+.day-cell{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:4px 2px;min-height:54px;border-right:0.5px solid var(--color-border-tertiary)}
+.day-cell.clickable{cursor:pointer}
+.day-cell.clickable:hover{background:#eaf4f1}
+.status-badge{font-size:9px;padding:2px 5px;border-radius:3px;white-space:nowrap;text-align:center;line-height:1.4}
+.s-work{background:#E1F5EE;color:#0F6E56}
+.s-offday{background:#F1EFE8;color:#444441}
+.time-custom{font-size:9px;font-weight:700;color:#C0392B;text-align:center;margin-top:2px}
+.time-strike{font-size:9px;color:#bbb;text-decoration:line-through;text-align:center}
+.log-time{font-size:9px;color:var(--color-text-secondary);margin-top:1px;text-align:center;font-style:italic}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.35);display:flex;align-items:center;justify-content:center;z-index:100;padding:1rem}
+.modal{background:#fff;border-radius:var(--border-radius-lg);border:0.5px solid var(--color-border-tertiary);padding:1.4rem;width:100%;max-width:370px;box-shadow:0 8px 24px rgba(0,0,0,0.12)}
+.modal h3{font-size:14px;font-weight:600;margin-bottom:0.75rem;color:var(--color-text-primary)}
+.modal label{font-size:12px;color:var(--color-text-secondary);display:block;margin-bottom:3px;margin-top:10px}
+.modal select,.modal input,.modal textarea{width:100%;font-size:13px;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);padding:6px 8px;background:#fff;color:var(--color-text-primary);font-family:inherit}
+.modal textarea{resize:vertical;min-height:44px}
+.modal-actions{display:flex;gap:8px;margin-top:1rem;justify-content:flex-end;flex-wrap:wrap}
+.btn-cancel{padding:5px 13px;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);background:transparent;cursor:pointer;font-size:12px;color:var(--color-text-secondary);font-family:inherit}
+.btn-save{padding:5px 13px;border:0.5px solid #0F6E56;border-radius:var(--border-radius-md);background:#E1F5EE;cursor:pointer;font-size:12px;color:#0F6E56;font-weight:600;font-family:inherit}
+.btn-del{padding:5px 13px;border:0.5px solid #993C1D;border-radius:var(--border-radius-md);background:#FAECE7;cursor:pointer;font-size:12px;color:#993C1D;font-family:inherit}
+.btn-cancel:hover{background:var(--color-background-secondary)}
+.btn-save:hover{background:#9FE1CB}
+.btn-del:hover{background:#F5C4B3}
+.section-sep{border:none;border-top:0.5px solid var(--color-border-tertiary);margin:10px 0 2px}
+.section-lbl{font-size:10px;font-weight:700;color:var(--color-text-secondary);margin:8px 0 4px;text-transform:uppercase;letter-spacing:0.05em}
+.time-row{display:flex;gap:8px;align-items:center}
+.time-row span{font-size:12px;color:var(--color-text-secondary)}
+.log-view{font-size:12px}
+.log-entry{padding:8px 0;border-bottom:0.5px solid var(--color-border-tertiary);display:flex;align-items:flex-start;gap:8px}
+.log-entry:last-child{border-bottom:none}
+.log-dot{width:8px;height:8px;border-radius:2px;margin-top:3px;flex-shrink:0}
+.del-btn{margin-left:auto;background:transparent;border:none;cursor:pointer;color:var(--color-text-secondary);font-size:18px;padding:0 2px;line-height:1;flex-shrink:0}
+.del-btn:hover{color:#993C1D}
+.empty-state{text-align:center;padding:2.5rem;color:var(--color-text-secondary);font-size:13px}
+.hint-bar{margin-top:0.5rem;font-size:10px;color:var(--color-text-secondary)}
+.view-notice{background:#fdf8e8;border:0.5px solid #e8d97a;border-radius:var(--border-radius-md);padding:0.5rem 0.75rem;font-size:12px;color:#7a6500;margin-bottom:0.75rem}
+.err-msg{font-size:12px;color:#993C1D;margin-top:6px}
+.pw-wrap{background:#fff;border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:1rem;margin-top:1rem}
+.toast{position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);background:#1D9E75;color:#fff;font-size:13px;font-weight:600;padding:9px 20px;border-radius:var(--border-radius-lg);box-shadow:0 4px 16px rgba(0,0,0,0.18);z-index:999;opacity:0;transition:opacity 0.25s;pointer-events:none}
+.toast.show{opacity:1}
+.btn-export{padding:5px 12px;border:0.5px solid #185FA5;border-radius:var(--border-radius-md);background:#E6F1FB;cursor:pointer;font-size:11px;color:#185FA5;font-weight:600;font-family:inherit}
+.btn-export:hover{background:#C3DEFA}
+.btn-import{padding:5px 12px;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);background:transparent;cursor:pointer;font-size:11px;color:var(--color-text-secondary);font-family:inherit}
+.btn-import:hover{background:var(--color-background-secondary)}
+.admin-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:#fff;border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:8px 12px;margin-bottom:0.75rem}
+.admin-toolbar span{font-size:11px;color:var(--color-text-secondary);margin-right:4px}
+.btn-save-main{padding:7px 18px;border:0.5px solid #0F6E56;border-radius:var(--border-radius-md);background:#0F6E56;cursor:pointer;font-size:13px;color:#fff;font-weight:700;font-family:inherit;display:flex;align-items:center;gap:5px}
+.btn-save-main:hover{background:#0a5a45}
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+const ADMIN_PASS='anhmyclinic2025';
+const EPOCH_MONDAY=new Date('2025-01-06T00:00:00');
+
+const STAFF=[
+  {id:'dao',   name:'Bs. Đạo',    role:'', sched:{0:null,1:['09:00','18:00'],2:['09:00','19:30'],3:['09:00','18:00'],4:['09:00','19:30'],5:['09:00','18:00'],6:['09:00','19:30']}},
+  {id:'tuan',  name:'Bs. Tuấn',   role:'', sched:{0:['10:30','13:30'],1:['10:30','19:30'],2:['10:30','19:30'],3:['10:30','19:30'],4:['10:30','19:30'],5:['10:30','19:30'],6:['10:30','19:30']}},
+  {id:'ha',    name:'Bs. Hữu Hà', role:'', sched:{0:null,1:null,2:['09:00','17:00'],3:null,4:null,5:['09:00','11:00'],6:null}},
+  {id:'khuyen',name:'Bs. Khuyến', role:'', sched:{0:['09:00','13:30'],1:['09:00','18:00'],2:['09:00','18:00'],3:['09:00','18:00'],4:['09:00','18:00'],5:['09:00','18:00'],6:['09:00','18:00']}},
+  {id:'huy',   name:'Ds. Huy',    role:'Dược sĩ', sched:{0:['09:00','13:30'],1:['09:00','19:30'],2:['09:00','19:30'],3:['09:00','19:30'],4:['09:00','19:30'],5:['09:00','19:30'],6:['09:00','19:30']}},
+  {id:'tuong', name:'Ds. Tưởng',  role:'Dược sĩ', sched:{0:'alt',1:['08:00','16:30'],2:['08:00','16:30'],3:['08:00','16:30'],4:['08:00','16:30'],5:['08:00','16:30'],6:['08:00','16:30']}, altSunSched:['08:00','13:30']},
+  {id:'xntan', name:'ThS. Tân',   role:'Xét nghiệm', sched:{0:null,1:['09:00','16:30'],2:['09:00','16:30'],3:['09:00','16:30'],4:['09:00','16:30'],5:['09:00','16:30'],6:['09:00','16:30']}},
+  {id:'nhan',  name:'ĐD Nhân',    role:'BVDL', sched:{0:null,1:['16:45','19:30'],2:null,3:['16:45','19:30'],4:null,5:null,6:null}},
+  {id:'bvan',  name:'BV An',      role:'Bảo vệ', sched:'shift'},
+  {id:'dung',  name:'Dũng',       role:'Bảo vệ', sched:'shift'},
+  {id:'uyen',  name:'HL Uyên',    role:'', sched:{0:null,1:['06:00','15:30'],2:['06:00','15:30'],3:['06:00','15:30'],4:['06:00','15:30'],5:['06:00','15:30'],6:['06:00','15:30']}},
+  {id:'hong',  name:'KTV. Hồng',  role:'KTV Da', flexOff:1, sched:{0:['08:30','13:00'],1:['11:00','19:30'],2:['11:00','19:30'],3:['11:00','19:30'],4:['11:00','19:30'],5:['11:00','19:30'],6:['11:00','19:30']}},
+  {id:'thao',  name:'KTV. Thảo',  role:'KTV Da', flexOff:1, sched:{0:['08:00','13:30'],1:['08:30','16:30'],2:['08:00','16:30'],3:['08:30','16:30'],4:['08:00','16:30'],5:['08:30','16:30'],6:['08:00','16:30']}},
+  {id:'phong', name:'KTV. Phong', role:'KTV Da', sched:{0:['09:30','13:30'],1:['08:00','16:30'],2:['08:30','16:30'],3:['08:00','16:30'],4:['08:30','16:30'],5:['08:00','16:30'],6:['08:30','16:30']}},
+];
+
+const DAY_NAMES=['CN','T2','T3','T4','T5','T6','T7'];
+const COLS=['T2','T3','T4','T5','T6','T7','CN'];
+const COL_DOW=[1,2,3,4,5,6,0];
+const STATUS_META={
+  absent: {label:'Nghỉ đột xuất',bg:'#FAECE7',color:'#993C1D',dot:'#D85A30'},
+  early:  {label:'Về sớm',       bg:'#FAEEDA',color:'#854F0B',dot:'#BA7517'},
+  leave:  {label:'Nghỉ phép',    bg:'#E6F1FB',color:'#185FA5',dot:'#378ADD'},
+  holiday:{label:'Nghỉ lễ',      bg:'#FBEAF0',color:'#993556',dot:'#D4537E'},
+  dayoff: {label:'Ca nghỉ',      bg:'#EEEDFE',color:'#3C3489',dot:'#7F77DD'},
+};
+
+let events={};
+try{const r=localStorage.getItem('amc_schedule_v1');if(r)events=JSON.parse(r);}catch(e){}
+let isAdmin=false,currentMonday=getMonday(new Date()),activeTab='week',pendingCell=null;
+
+function saveEvents(){try{localStorage.setItem('amc_schedule_v1',JSON.stringify(events));}catch(e){}}
+
+function showToast(msg){
+  let t=document.getElementById('save-toast');
+  if(!t){t=document.createElement('div');t.id='save-toast';t.className='toast';document.body.appendChild(t);}
+  t.textContent=msg||'✓ Đã lưu';t.classList.add('show');
+  clearTimeout(t._timer);t._timer=setTimeout(()=>t.classList.remove('show'),2200);
+}
+
+function exportData(){
+  const json=JSON.stringify(events,null,2);
+  const blob=new Blob([json],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='amc-schedule-'+fmtDate(new Date())+'.json';a.click();
+}
+
+function importData(){
+  const input=document.createElement('input');input.type='file';input.accept='.json,application/json';
+  input.addEventListener('change',e=>{
+    const file=e.target.files[0];if(!file)return;
+    const reader=new FileReader();
+    reader.onload=ev=>{
+      try{
+        const data=JSON.parse(ev.target.result);
+        events=data;saveEvents();showToast('✓ Đã nhập dữ liệu');renderTabContent();
+      }catch(err){alert('File không hợp lệ');}
+    };reader.readAsText(file);
+  });input.click();
+}
+function getMonday(d){const dt=new Date(d);const day=dt.getDay();const diff=dt.getDate()-day+(day===0?-6:1);dt.setDate(diff);dt.setHours(0,0,0,0);return dt;}
+function weekIndex(m){return Math.round((m.getTime()-EPOCH_MONDAY.getTime())/(7*24*3600*1000));}
+function fmtDate(d){return d.getFullYear()+'-'+(d.getMonth()+1).toString().padStart(2,'0')+'-'+d.getDate().toString().padStart(2,'0');}
+function fmtDisp(d){return d.getDate()+'/'+(d.getMonth()+1);}
+function getDayDates(){return COL_DOW.map((_,i)=>{const d=new Date(currentMonday);d.setDate(d.getDate()+i);return d;});}
+function getEvent(sid,ds){return events[sid+'__'+ds]||null;}
+function setEvent(sid,ds,ev){events[sid+'__'+ds]=ev;saveEvents();}
+function delEvent(key){delete events[key];saveEvents();}
+
+function schedLabel(staff,dow,dayDate){
+  if(staff.sched==='shift')return{text:'≈ 24h luân phiên',isShift:true};
+  if(dow===0&&staff.sched[0]==='alt'){
+    if(weekIndex(getMonday(dayDate))%2===0)return{text:staff.altSunSched[0]+'–'+staff.altSunSched[1],start:staff.altSunSched[0],end:staff.altSunSched[1],note:'CN làm'};
+    return null;
+  }
+  const s=staff.sched[dow];
+  if(!s)return null;
+  return{text:s[0]+'–'+s[1],start:s[0],end:s[1]};
+}
+
+function render(){document.getElementById('app').innerHTML='';if(!isAdmin)renderView();else renderDashboard();}
+
+function renderView(){
+  const sm=document.getElementById('modal-overlay-wrap');if(sm)sm.remove();pendingCell=null;
+  document.getElementById('app').innerHTML=`
+    <div class="hdr">
+      <div class="hdr-left"><h2>📋 Bảng theo dõi nhân sự</h2><p>Phòng khám Da Liễu Anh Mỹ</p></div>
+    </div>
+    <div class="view-notice">⚠️ Chế độ xem — chỉ Bs. Đạo mới có thể chỉnh sửa</div>
+    ${renderWeekNavHTML()}${renderSummaryHTML()}${renderLegendHTML()}${renderGridHTML(false)}
+    <div class="pw-wrap">
+      <div style="font-size:12px;color:var(--color-text-secondary);margin-bottom:0.5rem;font-weight:600">Đăng nhập quản trị (Bs. Đạo)</div>
+      <div style="display:flex;gap:6px;align-items:center">
+        <input type="password" id="pw-input" placeholder="Mật khẩu" style="max-width:180px;font-size:13px;padding:6px 8px;border:0.5px solid #d0cfc9;border-radius:6px"/>
+        <button id="login-btn" style="font-size:12px;padding:6px 14px;background:#E1F5EE;border:0.5px solid #0F6E56;color:#0F6E56;border-radius:6px;cursor:pointer;font-weight:600">Đăng nhập</button>
+      </div>
+      <div id="pw-err" class="err-msg" style="display:none">Mật khẩu không đúng</div>
+    </div>`;
+  bindWeekNav();
+  document.getElementById('login-btn').addEventListener('click',doLogin);
+  document.getElementById('pw-input').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
+}
+
+function doLogin(){
+  if(document.getElementById('pw-input').value===ADMIN_PASS){isAdmin=true;render();}
+  else document.getElementById('pw-err').style.display='block';
+}
+
+function renderDashboard(){
+  document.getElementById('app').innerHTML=`
+    <div class="hdr">
+      <div class="hdr-left"><h2>📋 Bảng theo dõi nhân sự</h2><p>Phòng khám Da Liễu Anh Mỹ</p></div>
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+        <span class="admin-badge">🛡 Bs. Đạo · Admin</span>
+        <button class="btn-export" id="export-btn">⬇ Xuất dữ liệu</button>
+        <button class="btn-import" id="import-btn">⬆ Nhập dữ liệu</button>
+        <button class="logout-btn" id="logout-btn">Đăng xuất</button>
+      </div>
+    </div>
+    <div class="tabs">
+      <div class="tab ${activeTab==='week'?'active':''}" data-tab="week">Tuần</div>
+      <div class="tab ${activeTab==='log'?'active':''}" data-tab="log">Nhật ký</div>
+    </div>
+    <div id="tab-content"></div><div id="modal-area"></div>`;
+  document.getElementById('logout-btn').addEventListener('click',()=>{isAdmin=false;activeTab='week';render();});
+  document.getElementById('export-btn').addEventListener('click',exportData);
+  document.getElementById('import-btn').addEventListener('click',importData);
+  document.querySelectorAll('.tab').forEach(t=>{
+    t.addEventListener('click',()=>{activeTab=t.dataset.tab;document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));t.classList.add('active');renderTabContent();});
+  });
+  renderTabContent();
+}
+
+function renderTabContent(){
+  const stale=document.getElementById('modal-overlay-wrap');
+  if(stale)stale.remove();
+  pendingCell=null;
+  const tc=document.getElementById('tab-content');if(!tc)return;
+  if(activeTab==='week'){
+    const toolbar=`<div class="admin-toolbar">
+      <span>🛡 Bs. Đạo:</span>
+      <button class="btn-save-main" id="btn-save-all">💾 Lưu lịch</button>
+      <button class="btn-export" id="export-btn2">⬇ Xuất dữ liệu (JSON)</button>
+      <button class="btn-import" id="import-btn2">⬆ Nhập dữ liệu (JSON)</button>
+    </div>`;
+    tc.innerHTML=toolbar+renderWeekNavHTML()+renderSummaryHTML()+renderLegendHTML()+renderGridHTML(true)+'<div class="hint-bar">💡 Nhấn vào ô để ghi nhận sự kiện hoặc chỉnh giờ thực tế</div>';
+    bindWeekNav();bindCells();
+    document.getElementById('btn-save-all').addEventListener('click',()=>{saveEvents();showToast('✓ Đã lưu lịch!');});
+    document.getElementById('export-btn2').addEventListener('click',exportData);
+    document.getElementById('import-btn2').addEventListener('click',importData);
+  } else {tc.innerHTML=renderLogHTML();bindLogDeletes();}
+}
+
+function renderWeekNavHTML(){
+  const dates=getDayDates();const s=dates[0],e=dates[6];
+  return`<div class="week-nav">
+    <button id="prev-w">&#8249;</button>
+    <span class="week-label">${fmtDisp(s)} – ${fmtDisp(e)}/${e.getFullYear()}</span>
+    <button id="next-w">&#8250;</button>
+    <button id="today-w" style="margin-left:4px">Hôm nay</button>
+  </div>`;
+}
+
+function bindWeekNav(){
+  const pw=document.getElementById('prev-w'),nw=document.getElementById('next-w'),tw=document.getElementById('today-w');
+  if(pw)pw.addEventListener('click',()=>{currentMonday=new Date(currentMonday);currentMonday.setDate(currentMonday.getDate()-7);render();});
+  if(nw)nw.addEventListener('click',()=>{currentMonday=new Date(currentMonday);currentMonday.setDate(currentMonday.getDate()+7);render();});
+  if(tw)tw.addEventListener('click',()=>{currentMonday=getMonday(new Date());render();});
+}
+
+function renderSummaryHTML(){
+  const dates=getDayDates();let a=0,e=0,l=0,h=0,d=0;
+  dates.forEach(dt=>{const ds=fmtDate(dt);STAFF.forEach(s=>{const ev=getEvent(s.id,ds);if(ev&&ev.type){if(ev.type==='absent')a++;if(ev.type==='early')e++;if(ev.type==='leave')l++;if(ev.type==='holiday')h++;if(ev.type==='dayoff')d++;}});});
+  return`<div class="summary-bar">
+    <div class="sum-card"><div class="val" style="color:#993C1D">${a}</div><div class="lbl">Nghỉ đột xuất</div></div>
+    <div class="sum-card"><div class="val" style="color:#854F0B">${e}</div><div class="lbl">Về sớm</div></div>
+    <div class="sum-card"><div class="val" style="color:#185FA5">${l}</div><div class="lbl">Nghỉ phép</div></div>
+    <div class="sum-card"><div class="val" style="color:#993556">${h}</div><div class="lbl">Nghỉ lễ/bù</div></div>
+    <div class="sum-card"><div class="val" style="color:#3C3489">${d}</div><div class="lbl">Ca nghỉ</div></div>
+  </div>`;
+}
+
+function renderLegendHTML(){
+  return`<div class="legend">
+    <div class="leg-item"><div class="leg-dot" style="background:#1D9E75"></div>Làm việc</div>
+    <div class="leg-item"><div class="leg-dot" style="background:#888780"></div>Nghỉ theo lịch</div>
+    <div class="leg-item"><div class="leg-dot" style="background:#D85A30"></div>Nghỉ đột xuất</div>
+    <div class="leg-item"><div class="leg-dot" style="background:#BA7517"></div>Về sớm</div>
+    <div class="leg-item"><div class="leg-dot" style="background:#378ADD"></div>Nghỉ phép</div>
+    <div class="leg-item"><div class="leg-dot" style="background:#D4537E"></div>Nghỉ lễ</div>
+    <div class="leg-item"><div class="leg-dot" style="background:#7F77DD"></div>Ca nghỉ</div>
+    <div class="leg-item"><div class="leg-dot" style="background:#C0392B"></div><span style="color:#C0392B;font-weight:700">Giờ thực tế</span></div>
+  </div>`;
+}
+
+function renderGridHTML(editable){
+  const dates=getDayDates();const today=fmtDate(new Date());
+  let html=`<div class="grid-wrap"><div class="grid-head"><div class="gh-cell" style="text-align:left;padding-left:8px">Nhân viên</div>`;
+  dates.forEach((d,i)=>{
+    const ds=fmtDate(d);const cls=ds===today?'gh-cell today-col':'gh-cell';
+    html+=`<div class="${cls}">${COLS[i]}<br><span style="font-size:11px;font-weight:400">${d.getDate()}/${d.getMonth()+1}</span></div>`;
+  });
+  html+='</div>';
+  STAFF.forEach(staff=>{
+    const roleHtml=staff.role?`<span>${staff.role}</span>`:'';
+    const flexHtml=staff.flexOff?'<span style="font-size:9px;color:#378ADD">1 ngày nghỉ/tuần</span>':'';
+    const altHtml=(staff.sched&&staff.sched[0]==='alt')?'<span style="font-size:9px;color:#888780">CN: tuần làm/tuần nghỉ</span>':'';
+    html+=`<div class="staff-row"><div class="staff-name">${staff.name}${roleHtml}${flexHtml}${altHtml}</div>`;
+    dates.forEach((d)=>{
+      const dow=d.getDay();const ds=fmtDate(d);
+      const ev=getEvent(staff.id,ds);
+      const sched=schedLabel(staff,dow,d);
+      const isToday=ds===today;
+      const canClick=editable&&(!!sched||!!ev);
+      let cellStyle=isToday?'outline:2px solid #1D9E75;outline-offset:-1px;':'';
+      let inner='';
+      const hasCustom=ev&&ev.customStart&&ev.customEnd;
+      const hasType=ev&&ev.type;
+      if(hasType&&ev.type==='offday'){
+        cellStyle+='background:#f5f4f0;';
+        inner=`<span class="status-badge s-offday">Nghỉ lịch</span>`;
+      } else if(hasType){
+        const m=STATUS_META[ev.type];
+        inner+=`<span class="status-badge" style="background:${m.bg};color:${m.color}">${m.label}</span>`;
+        if(ev.type==='early'&&ev.time)inner+=`<span class="log-time">Về ${ev.time}</span>`;
+        if(hasCustom)inner+=`<span class="time-custom">${ev.customStart}–${ev.customEnd}</span>`;
+        else if(ev.note)inner+=`<span class="log-time">${ev.note.substring(0,12)}</span>`;
+      } else if(!sched){
+        cellStyle+='background:#f5f4f0;';
+        inner=`<span class="status-badge s-offday">Nghỉ lịch</span>`;
+      } else if(sched.isShift){
+        inner=`<span class="status-badge s-work">${sched.text}</span>`;
+      } else {
+        if(hasCustom){
+          inner+=`<span class="time-strike">${sched.start}–${sched.end}</span>`;
+          inner+=`<span class="time-custom">${ev.customStart}–${ev.customEnd}</span>`;
+          if(ev.note)inner+=`<span class="log-time">${ev.note.substring(0,12)}</span>`;
+        } else {
+          inner=`<span class="status-badge s-work">${sched.text}</span>`;
+          if(sched.note)inner+=`<span class="log-time">${sched.note}</span>`;
+        }
+      }
+      const cls2='day-cell'+(canClick?' clickable':'');
+      const data=canClick?`data-sid="${staff.id}" data-ds="${ds}"`:'';
+      html+=`<div class="${cls2}" style="${cellStyle}" ${data}>${inner}</div>`;
+    });
+    html+='</div>';
+  });
+  html+='</div>';return html;
+}
+
+function bindCells(){
+  document.querySelectorAll('.day-cell.clickable').forEach(cell=>{
+    cell.addEventListener('click',()=>{
+      const sid=cell.dataset.sid,ds=cell.dataset.ds;
+      openModal(STAFF.find(s=>s.id===sid),ds,getEvent(sid,ds));
+    });
+  });
+}
+
+function openModal(staff,ds,existing){
+  pendingCell={staff,ds,existing};
+  const dObj=new Date(ds+'T00:00:00');const dow=dObj.getDay();
+  const sched=schedLabel(staff,dow,dObj);
+  const hasCustom=existing&&existing.customStart;
+  const isLeave=existing&&existing.type==='leave';
+
+  const isOffday=existing&&existing.type==='offday';
+  // Determine current mode: 'default' | 'leave' | 'offday' | 'custom'
+  let curMode='default';
+  if(isLeave)curMode='leave';
+  else if(isOffday)curMode='offday';
+  else if(hasCustom)curMode='custom';
+
+  const origStart=sched&&!sched.isShift?sched.start:'';
+  const origEnd=sched&&!sched.isShift?sched.end:'';
+
+  const div=document.createElement('div');
+  div.id='modal-overlay-wrap';
+  div.className='modal-overlay';
+  div.innerHTML=`<div class="modal">
+    <h3>${staff.name} · ${DAY_NAMES[dow]} ${fmtDisp(dObj)}</h3>
+    ${origStart?`<div style="font-size:11px;color:var(--color-text-secondary);margin-bottom:10px">Lịch gốc: <b>${origStart}–${origEnd}</b></div>`:''}
+    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px 10px;border-radius:6px;border:1.5px solid ${curMode==='default'?'#0F6E56':'#e0dfd9'};background:${curMode==='default'?'#E1F5EE':'transparent'}">
+        <input type="radio" name="mode" value="default" ${curMode==='default'?'checked':''} style="accent-color:#0F6E56"/>
+        <span style="font-size:13px;font-weight:${curMode==='default'?'600':'400'}">Theo mặc định</span>
+        ${origStart?`<span style="margin-left:auto;font-size:11px;color:#0F6E56">${origStart}–${origEnd}</span>`:''}
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px 10px;border-radius:6px;border:1.5px solid ${curMode==='leave'?'#185FA5':'#e0dfd9'};background:${curMode==='leave'?'#E6F1FB':'transparent'}">
+        <input type="radio" name="mode" value="leave" ${curMode==='leave'?'checked':''} style="accent-color:#185FA5"/>
+        <span style="font-size:13px;font-weight:${curMode==='leave'?'600':'400'}">Nghỉ phép</span>
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px 10px;border-radius:6px;border:1.5px solid ${curMode==='offday'?'#5F5E5A':'#e0dfd9'};background:${curMode==='offday'?'#F1EFE8':'transparent'}">
+        <input type="radio" name="mode" value="offday" ${curMode==='offday'?'checked':''} style="accent-color:#5F5E5A"/>
+        <span style="font-size:13px;font-weight:${curMode==='offday'?'600':'400'}">Nghỉ lịch</span>
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px 10px;border-radius:6px;border:1.5px solid ${curMode==='custom'?'#C0392B':'#e0dfd9'};background:${curMode==='custom'?'#FAECE7':'transparent'}">
+        <input type="radio" name="mode" value="custom" ${curMode==='custom'?'checked':''} style="accent-color:#C0392B"/>
+        <span style="font-size:13px;font-weight:${curMode==='custom'?'600':'400'};color:${curMode==='custom'?'#C0392B':'inherit'}">Theo giờ mới</span>
+        ${hasCustom?`<span style="margin-left:auto;font-size:11px;color:#C0392B;font-weight:700">${existing.customStart}–${existing.customEnd}</span>`:''}
+      </label>
+    </div>
+    <div id="custom-time-wrap" style="display:${curMode==='custom'?'flex':'none'};gap:8px;align-items:center;margin-bottom:4px">
+      <input type="time" id="cust-start" value="${hasCustom?existing.customStart:origStart}" style="flex:1;font-size:13px;padding:6px 8px;border:1px solid #d0cfc9;border-radius:6px"/>
+      <span style="color:#888">–</span>
+      <input type="time" id="cust-end" value="${hasCustom?existing.customEnd:origEnd}" style="flex:1;font-size:13px;padding:6px 8px;border:1px solid #d0cfc9;border-radius:6px"/>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" id="btn-cancel">Hủy</button>
+      <button class="btn-save" id="btn-save">Lưu</button>
+    </div>
+  </div>`;
+  document.body.appendChild(div);
+
+  // Show/hide custom time inputs on radio change, update border styles
+  div.querySelectorAll('input[name="mode"]').forEach(radio=>{
+    radio.addEventListener('change',()=>{
+      const val=radio.value;
+      document.getElementById('custom-time-wrap').style.display=val==='custom'?'flex':'none';
+      div.querySelectorAll('label').forEach(lbl=>{
+        const r=lbl.querySelector('input[name="mode"]');
+        if(!r)return;
+        const active=r.value===val;
+        const colors={default:{border:'#0F6E56',bg:'#E1F5EE'},leave:{border:'#185FA5',bg:'#E6F1FB'},offday:{border:'#5F5E5A',bg:'#F1EFE8'},custom:{border:'#C0392B',bg:'#FAECE7'}};
+        lbl.style.border=`1.5px solid ${active?colors[r.value].border:'#e0dfd9'}`;
+        lbl.style.background=active?colors[r.value].bg:'transparent';
+      });
+    });
+  });
+
+  document.getElementById('btn-cancel').addEventListener('click',closeModal);
+  document.getElementById('btn-save').addEventListener('click',saveModal);
+  div.addEventListener('click',e=>{if(e.target===div)closeModal();});
+}
+
+function closeModal(){
+  const el=document.getElementById('modal-overlay-wrap');
+  if(el)el.remove();
+  pendingCell=null;
+}
+
+function saveModal(){
+  if(!pendingCell)return;
+  const modeEl=document.querySelector('input[name="mode"]:checked');
+  const mode=modeEl?modeEl.value:'default';
+
+  if(mode==='default'){
+    delEvent(pendingCell.staff.id+'__'+pendingCell.ds);
+  } else if(mode==='leave'){
+    setEvent(pendingCell.staff.id,pendingCell.ds,{type:'leave'});
+  } else if(mode==='offday'){
+    setEvent(pendingCell.staff.id,pendingCell.ds,{type:'offday'});
+  } else if(mode==='custom'){
+    const custStart=document.getElementById('cust-start')?document.getElementById('cust-start').value:'';
+    const custEnd=document.getElementById('cust-end')?document.getElementById('cust-end').value:'';
+    if(custStart&&custEnd){
+      setEvent(pendingCell.staff.id,pendingCell.ds,{customStart:custStart,customEnd:custEnd});
+    }
+  }
+  const el=document.getElementById('modal-overlay-wrap');
+  if(el)el.remove();
+  pendingCell=null;
+  showToast('✓ Đã lưu');
+  renderTabContent();
+}
+
+function renderLogHTML(){
+  const entries=Object.entries(events).sort((a,b)=>b[0].localeCompare(a[0]));
+  if(!entries.length)return'<div class="empty-state">📭 Chưa có sự kiện nào được ghi nhận</div>';
+  return'<div class="log-view">'+entries.map(([key,ev])=>{
+    const[sid,ds]=key.split('__');
+    const staff=STAFF.find(s=>s.id===sid);
+    const dObj=new Date(ds+'T00:00:00');
+    const m=ev.type&&STATUS_META[ev.type]?STATUS_META[ev.type]:null;
+    const typeTag=m?`<span style="background:${m.bg};color:${m.color};font-size:10px;padding:1px 6px;border-radius:3px;margin-left:4px">${m.label}</span>`:'';
+    const customTag=ev.customStart?`<span style="color:#C0392B;font-size:10px;font-weight:700;margin-left:4px">${ev.customStart}–${ev.customEnd}</span>`:'';
+    const extra=ev.type==='early'&&ev.time?` · Về ${ev.time}`:'';
+    const note=ev.note?` · ${ev.note}`:'';
+    const dot=m?m.dot:(ev.customStart?'#C0392B':'#aaa');
+    return`<div class="log-entry">
+      <div class="log-dot" style="background:${dot}"></div>
+      <div style="flex:1">
+        <span style="font-weight:600;color:var(--color-text-primary)">${staff?staff.name:sid}</span>
+        <span style="color:var(--color-text-secondary)"> · ${DAY_NAMES[dObj.getDay()]} ${fmtDisp(dObj)}</span>
+        ${typeTag}${customTag}
+        <div style="font-size:11px;color:var(--color-text-secondary);margin-top:2px">${extra}${note}</div>
+      </div>
+      <button class="del-btn" data-key="${key}" aria-label="Xóa">×</button>
+    </div>`;
+  }).join('')+'</div>';
+}
+
+function bindLogDeletes(){document.querySelectorAll('.del-btn').forEach(btn=>{btn.addEventListener('click',()=>{delEvent(btn.dataset.key);renderTabContent();});});}
+
+render();
+</script>
+</body>
+</html>
