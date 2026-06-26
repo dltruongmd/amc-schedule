@@ -107,7 +107,7 @@ const STAFF=[
   {id:'dung',  name:'Dũng',       role:'Bảo vệ', sched:'shift'},
   {id:'uyen',  name:'HL Uyên',    role:'', sched:{0:null,1:['06:00','15:30'],2:['06:00','15:30'],3:['06:00','15:30'],4:['06:00','15:30'],5:['06:00','15:30'],6:['06:00','15:30']}},
   {id:'hong',  name:'KTV. Hồng',  role:'KTV Da', flexOff:1, sched:{0:['08:30','13:00'],1:['11:00','19:30'],2:['11:00','19:30'],3:['11:00','19:30'],4:['11:00','19:30'],5:['11:00','19:30'],6:['11:00','19:30']}},
-  {id:'thao',  name:'KTV. Thảo',  role:'KTV Da', flexOff:1, sched:{0:['08:30','13:30'],1:['08:30','16:30'],2:['08:00','16:30'],3:['08:30','16:30'],4:['08:00','16:30'],5:['08:30','16:30'],6:['08:00','16:30']}},
+  {id:'thao',  name:'KTV. Thảo',  role:'KTV Da', flexOff:1, sched:{0:['08:00','13:30'],1:['08:30','16:30'],2:['08:00','16:30'],3:['08:30','16:30'],4:['08:00','16:30'],5:['08:30','16:30'],6:['08:00','16:30']}},
   {id:'phong', name:'KTV. Phong', role:'KTV Da', sched:{0:['09:30','13:30'],1:['08:00','16:30'],2:['08:30','16:30'],3:['08:00','16:30'],4:['08:30','16:30'],5:['08:00','16:30'],6:['08:30','16:30']}},
 ];
 
@@ -150,6 +150,7 @@ function schedLabel(staff,dow,dayDate){
 function render(){document.getElementById('app').innerHTML='';if(!isAdmin)renderView();else renderDashboard();}
 
 function renderView(){
+  const sm=document.getElementById('modal-overlay-wrap');if(sm)sm.remove();pendingCell=null;
   document.getElementById('app').innerHTML=`
     <div class="hdr">
       <div class="hdr-left"><h2>📋 Bảng theo dõi nhân sự</h2><p>Phòng khám Da Liễu Anh Mỹ</p></div>
@@ -196,6 +197,9 @@ function renderDashboard(){
 }
 
 function renderTabContent(){
+  const stale=document.getElementById('modal-overlay-wrap');
+  if(stale)stale.remove();
+  pendingCell=null;
   const tc=document.getElementById('tab-content');if(!tc)return;
   if(activeTab==='week'){
     tc.innerHTML=renderWeekNavHTML()+renderSummaryHTML()+renderLegendHTML()+renderGridHTML(true)+'<div class="hint-bar">💡 Nhấn vào ô để ghi nhận sự kiện hoặc chỉnh giờ thực tế</div>';
@@ -268,7 +272,10 @@ function renderGridHTML(editable){
       let inner='';
       const hasCustom=ev&&ev.customStart&&ev.customEnd;
       const hasType=ev&&ev.type;
-      if(hasType){
+      if(hasType&&ev.type==='offday'){
+        cellStyle+='background:#f5f4f0;';
+        inner=`<span class="status-badge s-offday">Nghỉ lịch</span>`;
+      } else if(hasType){
         const m=STATUS_META[ev.type];
         inner+=`<span class="status-badge" style="background:${m.bg};color:${m.color}">${m.label}</span>`;
         if(ev.type==='early'&&ev.time)inner+=`<span class="log-time">Về ${ev.time}</span>`;
@@ -311,36 +318,75 @@ function openModal(staff,ds,existing){
   pendingCell={staff,ds,existing};
   const dObj=new Date(ds+'T00:00:00');const dow=dObj.getDay();
   const sched=schedLabel(staff,dow,dObj);
-  const curType=existing&&existing.type?existing.type:'';
   const hasCustom=existing&&existing.customStart;
-  const timeSection=sched&&!sched.isShift?`
-    <div class="section-lbl">Giờ thực tế</div>
-    <div style="font-size:11px;color:var(--color-text-secondary);margin-bottom:6px">Lịch gốc: <b>${sched.start}–${sched.end}</b></div>
-    <div class="time-row">
-      <input type="time" id="cust-start" value="${hasCustom?existing.customStart:''}"/>
-      <span>–</span>
-      <input type="time" id="cust-end" value="${hasCustom?existing.customEnd:''}"/>
-    </div>
-    <hr class="section-sep"/>`:'<hr class="section-sep"/>';
+  const isLeave=existing&&existing.type==='leave';
+
+  const isOffday=existing&&existing.type==='offday';
+  // Determine current mode: 'default' | 'leave' | 'offday' | 'custom'
+  let curMode='default';
+  if(isLeave)curMode='leave';
+  else if(isOffday)curMode='offday';
+  else if(hasCustom)curMode='custom';
+
+  const origStart=sched&&!sched.isShift?sched.start:'';
+  const origEnd=sched&&!sched.isShift?sched.end:'';
+
   const div=document.createElement('div');
   div.id='modal-overlay-wrap';
   div.className='modal-overlay';
   div.innerHTML=`<div class="modal">
     <h3>${staff.name} · ${DAY_NAMES[dow]} ${fmtDisp(dObj)}</h3>
-    ${timeSection}
-    <label>Ghi chú</label>
-    <textarea id="ev-note" placeholder="Ghi chú...">${existing&&existing.note?existing.note:''}</textarea>
+    ${origStart?`<div style="font-size:11px;color:var(--color-text-secondary);margin-bottom:10px">Lịch gốc: <b>${origStart}–${origEnd}</b></div>`:''}
+    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px 10px;border-radius:6px;border:1.5px solid ${curMode==='default'?'#0F6E56':'#e0dfd9'};background:${curMode==='default'?'#E1F5EE':'transparent'}">
+        <input type="radio" name="mode" value="default" ${curMode==='default'?'checked':''} style="accent-color:#0F6E56"/>
+        <span style="font-size:13px;font-weight:${curMode==='default'?'600':'400'}">Theo mặc định</span>
+        ${origStart?`<span style="margin-left:auto;font-size:11px;color:#0F6E56">${origStart}–${origEnd}</span>`:''}
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px 10px;border-radius:6px;border:1.5px solid ${curMode==='leave'?'#185FA5':'#e0dfd9'};background:${curMode==='leave'?'#E6F1FB':'transparent'}">
+        <input type="radio" name="mode" value="leave" ${curMode==='leave'?'checked':''} style="accent-color:#185FA5"/>
+        <span style="font-size:13px;font-weight:${curMode==='leave'?'600':'400'}">Nghỉ phép</span>
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px 10px;border-radius:6px;border:1.5px solid ${curMode==='offday'?'#5F5E5A':'#e0dfd9'};background:${curMode==='offday'?'#F1EFE8':'transparent'}">
+        <input type="radio" name="mode" value="offday" ${curMode==='offday'?'checked':''} style="accent-color:#5F5E5A"/>
+        <span style="font-size:13px;font-weight:${curMode==='offday'?'600':'400'}">Nghỉ lịch</span>
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px 10px;border-radius:6px;border:1.5px solid ${curMode==='custom'?'#C0392B':'#e0dfd9'};background:${curMode==='custom'?'#FAECE7':'transparent'}">
+        <input type="radio" name="mode" value="custom" ${curMode==='custom'?'checked':''} style="accent-color:#C0392B"/>
+        <span style="font-size:13px;font-weight:${curMode==='custom'?'600':'400'};color:${curMode==='custom'?'#C0392B':'inherit'}">Theo giờ mới</span>
+        ${hasCustom?`<span style="margin-left:auto;font-size:11px;color:#C0392B;font-weight:700">${existing.customStart}–${existing.customEnd}</span>`:''}
+      </label>
+    </div>
+    <div id="custom-time-wrap" style="display:${curMode==='custom'?'flex':'none'};gap:8px;align-items:center;margin-bottom:4px">
+      <input type="time" id="cust-start" value="${hasCustom?existing.customStart:origStart}" style="flex:1;font-size:13px;padding:6px 8px;border:1px solid #d0cfc9;border-radius:6px"/>
+      <span style="color:#888">–</span>
+      <input type="time" id="cust-end" value="${hasCustom?existing.customEnd:origEnd}" style="flex:1;font-size:13px;padding:6px 8px;border:1px solid #d0cfc9;border-radius:6px"/>
+    </div>
     <div class="modal-actions">
-      ${existing?'<button class="btn-del" id="btn-del">Xóa tất cả</button>':''}
       <button class="btn-cancel" id="btn-cancel">Hủy</button>
       <button class="btn-save" id="btn-save">Lưu</button>
     </div>
   </div>`;
   document.body.appendChild(div);
+
+  // Show/hide custom time inputs on radio change, update border styles
+  div.querySelectorAll('input[name="mode"]').forEach(radio=>{
+    radio.addEventListener('change',()=>{
+      const val=radio.value;
+      document.getElementById('custom-time-wrap').style.display=val==='custom'?'flex':'none';
+      div.querySelectorAll('label').forEach(lbl=>{
+        const r=lbl.querySelector('input[name="mode"]');
+        if(!r)return;
+        const active=r.value===val;
+        const colors={default:{border:'#0F6E56',bg:'#E1F5EE'},leave:{border:'#185FA5',bg:'#E6F1FB'},offday:{border:'#5F5E5A',bg:'#F1EFE8'},custom:{border:'#C0392B',bg:'#FAECE7'}};
+        lbl.style.border=`1.5px solid ${active?colors[r.value].border:'#e0dfd9'}`;
+        lbl.style.background=active?colors[r.value].bg:'transparent';
+      });
+    });
+  });
+
   document.getElementById('btn-cancel').addEventListener('click',closeModal);
   document.getElementById('btn-save').addEventListener('click',saveModal);
-  const bd=document.getElementById('btn-del');
-  if(bd)bd.addEventListener('click',()=>{delEvent(pendingCell.staff.id+'__'+pendingCell.ds);closeModal();renderTabContent();});
   div.addEventListener('click',e=>{if(e.target===div)closeModal();});
 }
 
@@ -352,21 +398,27 @@ function closeModal(){
 
 function saveModal(){
   if(!pendingCell)return;
-  const noteEl=document.getElementById('ev-note');
-  const custStartEl=document.getElementById('cust-start');
-  const custEndEl=document.getElementById('cust-end');
-  const note=noteEl?noteEl.value.trim():'';
-  const custStart=custStartEl?custStartEl.value:'';
-  const custEnd=custEndEl?custEndEl.value:'';
-  if(!custStart&&!custEnd&&!note){
+  const modeEl=document.querySelector('input[name="mode"]:checked');
+  const mode=modeEl?modeEl.value:'default';
+
+  if(mode==='default'){
     delEvent(pendingCell.staff.id+'__'+pendingCell.ds);
-    closeModal();renderTabContent();return;
+  } else if(mode==='leave'){
+    setEvent(pendingCell.staff.id,pendingCell.ds,{type:'leave'});
+  } else if(mode==='offday'){
+    setEvent(pendingCell.staff.id,pendingCell.ds,{type:'offday'});
+  } else if(mode==='custom'){
+    const custStart=document.getElementById('cust-start')?document.getElementById('cust-start').value:'';
+    const custEnd=document.getElementById('cust-end')?document.getElementById('cust-end').value:'';
+    if(custStart&&custEnd){
+      setEvent(pendingCell.staff.id,pendingCell.ds,{customStart:custStart,customEnd:custEnd});
+    }
   }
-  const payload={};
-  if(note)payload.note=note;
-  if(custStart&&custEnd){payload.customStart=custStart;payload.customEnd=custEnd;}
-  setEvent(pendingCell.staff.id,pendingCell.ds,payload);
-  closeModal();renderTabContent();
+  // Remove modal first, then rebuild grid
+  const el=document.getElementById('modal-overlay-wrap');
+  if(el)el.remove();
+  pendingCell=null;
+  renderTabContent();
 }
 
 function renderLogHTML(){
