@@ -328,19 +328,6 @@ function openModal(staff,ds,existing){
   div.innerHTML=`<div class="modal">
     <h3>${staff.name} · ${DAY_NAMES[dow]} ${fmtDisp(dObj)}</h3>
     ${timeSection}
-    <div class="section-lbl">Sự kiện</div>
-    <select id="ev-type">
-      <option value="" ${!curType?'selected':''}>— Không có —</option>
-      <option value="absent"  ${curType==='absent'?'selected':''}>Nghỉ đột xuất</option>
-      <option value="early"   ${curType==='early'?'selected':''}>Về sớm</option>
-      <option value="leave"   ${curType==='leave'?'selected':''}>Nghỉ phép có kế hoạch</option>
-      <option value="holiday" ${curType==='holiday'?'selected':''}>Nghỉ lễ / bù</option>
-      <option value="dayoff"  ${curType==='dayoff'?'selected':''}>Ca nghỉ</option>
-    </select>
-    <div id="time-wrap" style="display:${curType==='early'?'block':'none'}">
-      <label>Thời gian về sớm</label>
-      <input type="time" id="ev-time" value="${existing&&existing.time?existing.time:''}"/>
-    </div>
     <label>Ghi chú</label>
     <textarea id="ev-note" placeholder="Ghi chú...">${existing&&existing.note?existing.note:''}</textarea>
     <div class="modal-actions">
@@ -350,9 +337,6 @@ function openModal(staff,ds,existing){
     </div>
   </div>`;
   document.body.appendChild(div);
-  document.getElementById('ev-type').addEventListener('change',e=>{
-    document.getElementById('time-wrap').style.display=e.target.value==='early'?'block':'none';
-  });
   document.getElementById('btn-cancel').addEventListener('click',closeModal);
   document.getElementById('btn-save').addEventListener('click',saveModal);
   const bd=document.getElementById('btn-del');
@@ -368,23 +352,17 @@ function closeModal(){
 
 function saveModal(){
   if(!pendingCell)return;
-  const typeEl=document.getElementById('ev-type');
   const noteEl=document.getElementById('ev-note');
-  const timeEl=document.getElementById('ev-time');
   const custStartEl=document.getElementById('cust-start');
   const custEndEl=document.getElementById('cust-end');
-  const type=typeEl?typeEl.value:'';
   const note=noteEl?noteEl.value.trim():'';
-  const time=type==='early'&&timeEl?timeEl.value:'';
   const custStart=custStartEl?custStartEl.value:'';
   const custEnd=custEndEl?custEndEl.value:'';
-  if(!type&&!custStart&&!custEnd&&!note){
+  if(!custStart&&!custEnd&&!note){
     delEvent(pendingCell.staff.id+'__'+pendingCell.ds);
     closeModal();renderTabContent();return;
   }
   const payload={};
-  if(type)payload.type=type;
-  if(time)payload.time=time;
   if(note)payload.note=note;
   if(custStart&&custEnd){payload.customStart=custStart;payload.customEnd=custEnd;}
   setEvent(pendingCell.staff.id,pendingCell.ds,payload);
