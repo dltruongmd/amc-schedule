@@ -450,6 +450,10 @@ function openModal(staff,ds,existing){
         <input type="radio" name="mode" value="offday" ${curMode==='offday'?'checked':''} style="accent-color:#5F5E5A"/>
         <span style="font-size:13px;font-weight:${curMode==='offday'?'600':'400'}">Nghỉ lịch</span>
       </label>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px 10px;border-radius:6px;border:1.5px solid ${curMode==='compoff'?'#1B6B3A':'#e0dfd9'};background:${curMode==='compoff'?'#F0FBF4':'transparent'}">
+        <input type="radio" name="mode" value="compoff" ${curMode==='compoff'?'checked':''} style="accent-color:#1B6B3A"/>
+        <span style="font-size:13px;font-weight:${curMode==='compoff'?'600':'400'}">Ngh&#7881; b&#249;</span>
+      </label>
       <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px 10px;border-radius:6px;border:1.5px solid ${curMode==='custom'?'#C0392B':'#e0dfd9'};background:${curMode==='custom'?'#FAECE7':'transparent'}">
         <input type="radio" name="mode" value="custom" ${curMode==='custom'?'checked':''} style="accent-color:#C0392B"/>
         <span style="font-size:13px;font-weight:${curMode==='custom'?'600':'400'};color:${curMode==='custom'?'#C0392B':'inherit'}">Theo giờ mới</span>
