@@ -130,7 +130,7 @@ const STATUS_META={
   leave:  {label:'Nghỉ phép',    bg:'#E6F1FB',color:'#185FA5',dot:'#378ADD'},
   holiday:{label:'Nghỉ lễ',      bg:'#FBEAF0',color:'#993556',dot:'#D4537E'},
   dayoff: {label:'Ca nghỉ',      bg:'#EEEDFE',color:'#3C3489',dot:'#7F77DD'},
-  compoff:{label:'Nghỉ bù',      bg:'#E0F7FA',color:'#006064',dot:'#00838F'},
+  compoff:{label:'Nghỉ bù',      bg:'#FFF8E1',color:'#F57F17',dot:'#FFA000'},
 };
 
 // ── Firebase config ── Thay bằng config của bạn sau khi tạo project
@@ -341,7 +341,7 @@ function renderLegendHTML(){
     <div class="leg-item"><div class="leg-dot" style="background:#378ADD"></div>Nghỉ phép</div>
     <div class="leg-item"><div class="leg-dot" style="background:#D4537E"></div>Nghỉ lễ</div>
     <div class="leg-item"><div class="leg-dot" style="background:#7F77DD"></div>Ca nghỉ</div>
-    <div class="leg-item"><div class="leg-dot" style="background:#00838F"></div>Nghỉ bù</div>
+    <div class="leg-item"><div class="leg-dot" style="background:#FFA000"></div>Nghỉ bù</div>
     <div class="leg-item"><div class="leg-dot" style="background:#C0392B"></div><span style="color:#C0392B;font-weight:700">Giờ thực tế</span></div>
   </div>`;
 }
@@ -450,8 +450,8 @@ function openModal(staff,ds,existing){
         <input type="radio" name="mode" value="offday" ${curMode==='offday'?'checked':''} style="accent-color:#5F5E5A"/>
         <span style="font-size:13px;font-weight:${curMode==='offday'?'600':'400'}">Nghỉ lịch</span>
       </label>
-      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px 10px;border-radius:6px;border:1.5px solid ${curMode==='compoff'?'#00838F':'#e0dfd9'};background:${curMode==='compoff'?'#E0F7FA':'transparent'}">
-        <input type="radio" name="mode" value="compoff" ${curMode==='compoff'?'checked':''} style="accent-color:#006064"/>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px 10px;border-radius:6px;border:1.5px solid ${curMode==='compoff'?'#FFA000':'#e0dfd9'};background:${curMode==='compoff'?'#FFF8E1':'transparent'}">
+        <input type="radio" name="mode" value="compoff" ${curMode==='compoff'?'checked':''} style="accent-color:#F57F17"/>
         <span style="font-size:13px;font-weight:${curMode==='compoff'?'600':'400'}">Ngh&#7881; b&#249;</span>
       </label>
       <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px 10px;border-radius:6px;border:1.5px solid ${curMode==='custom'?'#C0392B':'#e0dfd9'};background:${curMode==='custom'?'#FAECE7':'transparent'}">
