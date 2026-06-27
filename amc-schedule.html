@@ -132,11 +132,49 @@ const STATUS_META={
   dayoff: {label:'Ca nghỉ',      bg:'#EEEDFE',color:'#3C3489',dot:'#7F77DD'},
 };
 
+// ── Firebase config ── Thay bằng config của bạn sau khi tạo project
+const FB_URL='https://amc-schedule-default-rtdb.asia-southeast1.firebasedatabase.app/amc_schedule_v1.json';
+// ─────────────────────────────────────────────────────────────────
+
 let events={};
+let syncStatus='local'; // 'local' | 'syncing' | 'ok' | 'error'
 try{const r=localStorage.getItem('amc_schedule_v1');if(r)events=JSON.parse(r);}catch(e){}
 let isAdmin=false,currentMonday=getMonday(new Date()),activeTab='week',pendingCell=null;
 
-function saveEvents(){try{localStorage.setItem('amc_schedule_v1',JSON.stringify(events));}catch(e){}}
+function isFirebaseConfigured(){return FB_URL.indexOf('YOUR_PROJECT_ID')===-1;}
+
+async function loadFromFirebase(){
+  if(!isFirebaseConfigured())return;
+  try{
+    const res=await fetch(FB_URL);
+    if(!res.ok)throw new Error('HTTP '+res.status);
+    const data=await res.json();
+    if(data&&typeof data==='object'){
+      events=data;
+      try{localStorage.setItem('amc_schedule_v1',JSON.stringify(events));}catch(e){}
+    }
+    syncStatus='ok';
+  }catch(e){syncStatus='error';}
+}
+
+async function saveEvents(){
+  try{localStorage.setItem('amc_schedule_v1',JSON.stringify(events));}catch(e){}
+  if(!isFirebaseConfigured())return;
+  setSyncBadge('syncing');
+  try{
+    const res=await fetch(FB_URL,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(events)});
+    if(!res.ok)throw new Error('HTTP '+res.status);
+    syncStatus='ok';setSyncBadge('ok');
+  }catch(e){syncStatus='error';setSyncBadge('error');}
+}
+
+function setSyncBadge(status){
+  const el=document.getElementById('sync-badge');
+  if(!el)return;
+  const map={syncing:{text:'⏳ Đang lưu…',color:'#854F0B'},ok:{text:'☁️ Đã lưu cloud',color:'#0F6E56'},error:{text:'⚠️ Lỗi kết nối',color:'#993C1D'},local:{text:'💻 Lưu cục bộ',color:'#888'}};
+  const s=map[status]||map.local;
+  el.textContent=s.text;el.style.color=s.color;
+}
 
 function showToast(msg){
   let t=document.getElementById('save-toast');
@@ -160,7 +198,7 @@ function importData(){
     reader.onload=ev=>{
       try{
         const data=JSON.parse(ev.target.result);
-        events=data;saveEvents();showToast('✓ Đã nhập dữ liệu');renderTabContent();
+        events=data;saveEvents().then(()=>{showToast('✓ Đã nhập dữ liệu');renderTabContent();});
       }catch(err){alert('File không hợp lệ');}
     };reader.readAsText(file);
   });input.click();
@@ -185,7 +223,7 @@ function schedLabel(staff,dow,dayDate){
   return{text:s[0]+'–'+s[1],start:s[0],end:s[1]};
 }
 
-function render(){document.getElementById('app').innerHTML='';if(!isAdmin)renderView();else renderDashboard();}
+async function render(){document.getElementById('app').innerHTML='';if(!isAdmin){await loadFromFirebase();renderView();}else renderDashboard();}
 
 function renderView(){
   const sm=document.getElementById('modal-overlay-wrap');if(sm)sm.remove();pendingCell=null;
@@ -208,9 +246,12 @@ function renderView(){
   document.getElementById('pw-input').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
 }
 
-function doLogin(){
-  if(document.getElementById('pw-input').value===ADMIN_PASS){isAdmin=true;render();}
-  else document.getElementById('pw-err').style.display='block';
+async function doLogin(){
+  if(document.getElementById('pw-input').value===ADMIN_PASS){
+    isAdmin=true;
+    await loadFromFirebase();
+    renderDashboard();
+  } else document.getElementById('pw-err').style.display='block';
 }
 
 function renderDashboard(){
@@ -244,15 +285,18 @@ function renderTabContent(){
   pendingCell=null;
   const tc=document.getElementById('tab-content');if(!tc)return;
   if(activeTab==='week'){
+    const cfgOk=isFirebaseConfigured();
     const toolbar=`<div class="admin-toolbar">
       <span>🛡 Bs. Đạo:</span>
       <button class="btn-save-main" id="btn-save-all">💾 Lưu lịch</button>
-      <button class="btn-export" id="export-btn2">⬇ Xuất dữ liệu (JSON)</button>
-      <button class="btn-import" id="import-btn2">⬆ Nhập dữ liệu (JSON)</button>
+      <span id="sync-badge" style="font-size:11px;font-weight:600">${cfgOk?'☁️ Đã lưu cloud':'💻 Lưu cục bộ'}</span>
+      <div style="flex:1"></div>
+      <button class="btn-export" id="export-btn2">⬇ Xuất JSON</button>
+      <button class="btn-import" id="import-btn2">⬆ Nhập JSON</button>
     </div>`;
     tc.innerHTML=toolbar+renderWeekNavHTML()+renderSummaryHTML()+renderLegendHTML()+renderGridHTML(true)+'<div class="hint-bar">💡 Nhấn vào ô để ghi nhận sự kiện hoặc chỉnh giờ thực tế</div>';
     bindWeekNav();bindCells();
-    document.getElementById('btn-save-all').addEventListener('click',()=>{saveEvents();showToast('✓ Đã lưu lịch!');});
+    document.getElementById('btn-save-all').addEventListener('click',()=>{saveEvents().then(()=>showToast('✓ Đã lưu lịch!'));});
     document.getElementById('export-btn2').addEventListener('click',exportData);
     document.getElementById('import-btn2').addEventListener('click',importData);
   } else {tc.innerHTML=renderLogHTML();bindLogDeletes();}
@@ -468,7 +512,7 @@ function saveModal(){
   const el=document.getElementById('modal-overlay-wrap');
   if(el)el.remove();
   pendingCell=null;
-  showToast('✓ Đã lưu');
+  saveEvents().then(()=>showToast('✓ Đã lưu'));
   renderTabContent();
 }
 
