@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="vi">
 <head>
 <meta charset="UTF-8"/>
@@ -108,7 +108,7 @@ const STAFF=[
   {id:'dao',   name:'Bs. Đạo',    role:'', sched:{0:null,1:['09:00','18:00'],2:['09:00','19:30'],3:['09:00','18:00'],4:['09:00','19:30'],5:['09:00','18:00'],6:['09:00','19:30']}},
   {id:'tuan',  name:'Bs. Tuấn',   role:'', sched:{0:['10:30','13:30'],1:['10:30','19:30'],2:['10:30','19:30'],3:['10:30','19:30'],4:['10:30','19:30'],5:['10:30','19:30'],6:['10:30','19:30']}},
   {id:'ha',    name:'Bs. Hữu Hà', role:'', sched:{0:null,1:null,2:['09:00','17:00'],3:null,4:null,5:['09:00','11:00'],6:null}},
-  {id:'khuyen',name:'Bs. Khuyến', role:'', sched:{0:['09:30','13:30'],1:['09:30','18:00'],2:['09:30','18:00'],3:['09:30','18:00'],4:['09:30','18:00'],5:['09:30','18:00'],6:['09:30','18:00']}},
+  {id:'khuyen',name:'Bs. Khuyến', role:'', sched:{0:['09:00','13:30'],1:['09:00','18:00'],2:['09:00','18:00'],3:['09:00','18:00'],4:['09:00','18:00'],5:['09:00','18:00'],6:['09:00','18:00']}},
   {id:'huy',   name:'Ds. Huy',    role:'Dược sĩ', sched:{0:['09:00','13:30'],1:['09:00','19:30'],2:['09:00','19:30'],3:['09:00','19:30'],4:['09:00','19:30'],5:['09:00','19:30'],6:['09:00','19:30']}},
   {id:'tuong', name:'Ds. Tưởng',  role:'Dược sĩ', sched:{0:'alt',1:['08:00','16:30'],2:['08:00','16:30'],3:['08:00','16:30'],4:['08:00','16:30'],5:['08:00','16:30'],6:['08:00','16:30']}, altSunSched:['08:00','13:30']},
   {id:'xntan', name:'ThS. Tân',   role:'Xét nghiệm', sched:{0:null,1:['09:00','16:30'],2:['09:00','16:30'],3:['09:00','16:30'],4:['09:00','16:30'],5:['09:00','16:30'],6:['09:00','16:30']}},
@@ -130,51 +130,33 @@ const STATUS_META={
   leave:  {label:'Nghỉ phép',    bg:'#E6F1FB',color:'#185FA5',dot:'#378ADD'},
   holiday:{label:'Nghỉ lễ',      bg:'#FBEAF0',color:'#993556',dot:'#D4537E'},
   dayoff: {label:'Ca nghỉ',      bg:'#EEEDFE',color:'#3C3489',dot:'#7F77DD'},
-  compoff:{label:'Nghỉ bù',      bg:'#FFF8E1',color:'#F57F17',dot:'#FFA000'},
 };
 
-// ── Firebase config ── Thay bằng config của bạn sau khi tạo project
-const FB_URL='https://amc-schedule-default-rtdb.asia-southeast1.firebasedatabase.app/amc_schedule_v1.json';
-// ─────────────────────────────────────────────────────────────────
-
 let events={};
-let syncStatus='local'; // 'local' | 'syncing' | 'ok' | 'error'
-try{const r=localStorage.getItem('amc_schedule_v1');if(r)events=JSON.parse(r);}catch(e){}
 let isAdmin=false,currentMonday=getMonday(new Date()),activeTab='week',pendingCell=null;
 
-function isFirebaseConfigured(){return FB_URL.indexOf('YOUR_PROJECT_ID')===-1;}
-
-async function loadFromFirebase(){
-  if(!isFirebaseConfigured())return;
-  try{
-    const res=await fetch(FB_URL);
-    if(!res.ok)throw new Error('HTTP '+res.status);
-    const data=await res.json();
-    if(data&&typeof data==='object'){
-      events=data;
-      try{localStorage.setItem('amc_schedule_v1',JSON.stringify(events));}catch(e){}
-    }
-    syncStatus='ok';
-  }catch(e){syncStatus='error';}
-}
-
+const STORAGE_KEY='amc_schedule_events';
+let _saveTimer=null;
 async function saveEvents(){
-  try{localStorage.setItem('amc_schedule_v1',JSON.stringify(events));}catch(e){}
-  if(!isFirebaseConfigured())return;
-  setSyncBadge('syncing');
-  try{
-    const res=await fetch(FB_URL,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(events)});
-    if(!res.ok)throw new Error('HTTP '+res.status);
-    syncStatus='ok';setSyncBadge('ok');
-  }catch(e){syncStatus='error';setSyncBadge('error');}
+  // debounce rapid successive writes
+  clearTimeout(_saveTimer);
+  _saveTimer=setTimeout(async()=>{
+    try{
+      await window.storage.set(STORAGE_KEY,JSON.stringify(events),true);
+    }catch(e){
+      console.error('Lỗi lưu dữ liệu:',e);
+      showToast('⚠ Không lưu được — thử lại');
+    }
+  },150);
 }
-
-function setSyncBadge(status){
-  const el=document.getElementById('sync-badge');
-  if(!el)return;
-  const map={syncing:{text:'⏳ Đang lưu…',color:'#854F0B'},ok:{text:'☁️ Đã lưu cloud',color:'#0F6E56'},error:{text:'⚠️ Lỗi kết nối',color:'#993C1D'},local:{text:'💻 Lưu cục bộ',color:'#888'}};
-  const s=map[status]||map.local;
-  el.textContent=s.text;el.style.color=s.color;
+async function loadEvents(){
+  try{
+    const r=await window.storage.get(STORAGE_KEY,true);
+    if(r&&r.value)events=JSON.parse(r.value);
+  }catch(e){
+    // key chưa tồn tại lần đầu — bình thường
+    events={};
+  }
 }
 
 function showToast(msg){
@@ -199,7 +181,7 @@ function importData(){
     reader.onload=ev=>{
       try{
         const data=JSON.parse(ev.target.result);
-        events=data;saveEvents().then(()=>{showToast('✓ Đã nhập dữ liệu');renderTabContent();});
+        events=data;saveEvents();showToast('✓ Đã nhập dữ liệu');renderTabContent();
       }catch(err){alert('File không hợp lệ');}
     };reader.readAsText(file);
   });input.click();
@@ -224,7 +206,7 @@ function schedLabel(staff,dow,dayDate){
   return{text:s[0]+'–'+s[1],start:s[0],end:s[1]};
 }
 
-async function render(){document.getElementById('app').innerHTML='';if(!isAdmin){await loadFromFirebase();renderView();}else renderDashboard();}
+function render(){document.getElementById('app').innerHTML='';if(!isAdmin)renderView();else renderDashboard();}
 
 function renderView(){
   const sm=document.getElementById('modal-overlay-wrap');if(sm)sm.remove();pendingCell=null;
@@ -247,12 +229,9 @@ function renderView(){
   document.getElementById('pw-input').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
 }
 
-async function doLogin(){
-  if(document.getElementById('pw-input').value===ADMIN_PASS){
-    isAdmin=true;
-    await loadFromFirebase();
-    renderDashboard();
-  } else document.getElementById('pw-err').style.display='block';
+function doLogin(){
+  if(document.getElementById('pw-input').value===ADMIN_PASS){isAdmin=true;render();}
+  else document.getElementById('pw-err').style.display='block';
 }
 
 function renderDashboard(){
@@ -286,18 +265,15 @@ function renderTabContent(){
   pendingCell=null;
   const tc=document.getElementById('tab-content');if(!tc)return;
   if(activeTab==='week'){
-    const cfgOk=isFirebaseConfigured();
     const toolbar=`<div class="admin-toolbar">
       <span>🛡 Bs. Đạo:</span>
       <button class="btn-save-main" id="btn-save-all">💾 Lưu lịch</button>
-      <span id="sync-badge" style="font-size:11px;font-weight:600">${cfgOk?'☁️ Đã lưu cloud':'💻 Lưu cục bộ'}</span>
-      <div style="flex:1"></div>
-      <button class="btn-export" id="export-btn2">⬇ Xuất JSON</button>
-      <button class="btn-import" id="import-btn2">⬆ Nhập JSON</button>
+      <button class="btn-export" id="export-btn2">⬇ Xuất dữ liệu (JSON)</button>
+      <button class="btn-import" id="import-btn2">⬆ Nhập dữ liệu (JSON)</button>
     </div>`;
     tc.innerHTML=toolbar+renderWeekNavHTML()+renderSummaryHTML()+renderLegendHTML()+renderGridHTML(true)+'<div class="hint-bar">💡 Nhấn vào ô để ghi nhận sự kiện hoặc chỉnh giờ thực tế</div>';
     bindWeekNav();bindCells();
-    document.getElementById('btn-save-all').addEventListener('click',()=>{saveEvents().then(()=>showToast('✓ Đã lưu lịch!'));});
+    document.getElementById('btn-save-all').addEventListener('click',()=>{saveEvents();showToast('✓ Đã lưu lịch!');});
     document.getElementById('export-btn2').addEventListener('click',exportData);
     document.getElementById('import-btn2').addEventListener('click',importData);
   } else {tc.innerHTML=renderLogHTML();bindLogDeletes();}
@@ -341,7 +317,6 @@ function renderLegendHTML(){
     <div class="leg-item"><div class="leg-dot" style="background:#378ADD"></div>Nghỉ phép</div>
     <div class="leg-item"><div class="leg-dot" style="background:#D4537E"></div>Nghỉ lễ</div>
     <div class="leg-item"><div class="leg-dot" style="background:#7F77DD"></div>Ca nghỉ</div>
-    <div class="leg-item"><div class="leg-dot" style="background:#FFA000"></div>Nghỉ bù</div>
     <div class="leg-item"><div class="leg-dot" style="background:#C0392B"></div><span style="color:#C0392B;font-weight:700">Giờ thực tế</span></div>
   </div>`;
 }
@@ -364,7 +339,7 @@ function renderGridHTML(editable){
       const ev=getEvent(staff.id,ds);
       const sched=schedLabel(staff,dow,d);
       const isToday=ds===today;
-      const canClick=editable&&(!!sched||!!ev);
+      const canClick=editable;
       let cellStyle=isToday?'outline:2px solid #1D9E75;outline-offset:-1px;':'';
       let inner='';
       const hasCustom=ev&&ev.customStart&&ev.customEnd;
@@ -379,8 +354,13 @@ function renderGridHTML(editable){
         if(hasCustom)inner+=`<span class="time-custom">${ev.customStart}–${ev.customEnd}</span>`;
         else if(ev.note)inner+=`<span class="log-time">${ev.note.substring(0,12)}</span>`;
       } else if(!sched){
-        cellStyle+='background:#f5f4f0;';
-        inner=`<span class="status-badge s-offday">Nghỉ lịch</span>`;
+        if(hasCustom){
+          inner=`<span class="status-badge s-work">${ev.customStart}–${ev.customEnd}</span><span class="log-time">Làm thêm</span>`;
+          if(ev.note)inner+=`<span class="log-time">${ev.note.substring(0,12)}</span>`;
+        } else {
+          cellStyle+='background:#f5f4f0;';
+          inner=`<span class="status-badge s-offday">Nghỉ lịch</span>`;
+        }
       } else if(sched.isShift){
         inner=`<span class="status-badge s-work">${sched.text}</span>`;
       } else {
@@ -419,12 +399,9 @@ function openModal(staff,ds,existing){
   const isLeave=existing&&existing.type==='leave';
 
   const isOffday=existing&&existing.type==='offday';
-  const isCompoff=existing&&existing.type==='compoff';
-  // Determine current mode: 'default' | 'leave' | 'offday' | 'compoff' | 'custom'
   let curMode='default';
   if(isLeave)curMode='leave';
   else if(isOffday)curMode='offday';
-  else if(isCompoff)curMode='compoff';
   else if(hasCustom)curMode='custom';
 
   const origStart=sched&&!sched.isShift?sched.start:'';
@@ -435,28 +412,24 @@ function openModal(staff,ds,existing){
   div.className='modal-overlay';
   div.innerHTML=`<div class="modal">
     <h3>${staff.name} · ${DAY_NAMES[dow]} ${fmtDisp(dObj)}</h3>
-    ${origStart?`<div style="font-size:11px;color:var(--color-text-secondary);margin-bottom:10px">Lịch gốc: <b>${origStart}–${origEnd}</b></div>`:''}
+    ${origStart?`<div style="font-size:11px;color:var(--color-text-secondary);margin-bottom:10px">Lịch gốc: <b>${origStart}–${origEnd}</b></div>`:`<div style="font-size:11px;color:var(--color-text-secondary);margin-bottom:10px">Theo lịch: <b>Nghỉ</b> — chọn "Vào làm" để thêm ca</div>`}
     <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px">
       <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px 10px;border-radius:6px;border:1.5px solid ${curMode==='default'?'#0F6E56':'#e0dfd9'};background:${curMode==='default'?'#E1F5EE':'transparent'}">
         <input type="radio" name="mode" value="default" ${curMode==='default'?'checked':''} style="accent-color:#0F6E56"/>
-        <span style="font-size:13px;font-weight:${curMode==='default'?'600':'400'}">Theo mặc định</span>
+        <span style="font-size:13px;font-weight:${curMode==='default'?'600':'400'}">${origStart?'Theo mặc định':'Nghỉ lịch (mặc định)'}</span>
         ${origStart?`<span style="margin-left:auto;font-size:11px;color:#0F6E56">${origStart}–${origEnd}</span>`:''}
       </label>
       <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px 10px;border-radius:6px;border:1.5px solid ${curMode==='leave'?'#185FA5':'#e0dfd9'};background:${curMode==='leave'?'#E6F1FB':'transparent'}">
         <input type="radio" name="mode" value="leave" ${curMode==='leave'?'checked':''} style="accent-color:#185FA5"/>
         <span style="font-size:13px;font-weight:${curMode==='leave'?'600':'400'}">Nghỉ phép</span>
       </label>
-      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px 10px;border-radius:6px;border:1.5px solid ${curMode==='offday'?'#5F5E5A':'#e0dfd9'};background:${curMode==='offday'?'#F1EFE8':'transparent'}">
+      ${origStart?`<label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px 10px;border-radius:6px;border:1.5px solid ${curMode==='offday'?'#5F5E5A':'#e0dfd9'};background:${curMode==='offday'?'#F1EFE8':'transparent'}">
         <input type="radio" name="mode" value="offday" ${curMode==='offday'?'checked':''} style="accent-color:#5F5E5A"/>
         <span style="font-size:13px;font-weight:${curMode==='offday'?'600':'400'}">Nghỉ lịch</span>
-      </label>
-      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px 10px;border-radius:6px;border:1.5px solid ${curMode==='compoff'?'#FFA000':'#e0dfd9'};background:${curMode==='compoff'?'#FFF8E1':'transparent'}">
-        <input type="radio" name="mode" value="compoff" ${curMode==='compoff'?'checked':''} style="accent-color:#F57F17"/>
-        <span style="font-size:13px;font-weight:${curMode==='compoff'?'600':'400'}">Ngh&#7881; b&#249;</span>
-      </label>
+      </label>`:''}
       <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px 10px;border-radius:6px;border:1.5px solid ${curMode==='custom'?'#C0392B':'#e0dfd9'};background:${curMode==='custom'?'#FAECE7':'transparent'}">
         <input type="radio" name="mode" value="custom" ${curMode==='custom'?'checked':''} style="accent-color:#C0392B"/>
-        <span style="font-size:13px;font-weight:${curMode==='custom'?'600':'400'};color:${curMode==='custom'?'#C0392B':'inherit'}">Theo giờ mới</span>
+        <span style="font-size:13px;font-weight:${curMode==='custom'?'600':'400'};color:${curMode==='custom'?'#C0392B':'inherit'}">${origStart?'Theo giờ mới':'Vào làm (chọn giờ)'}</span>
         ${hasCustom?`<span style="margin-left:auto;font-size:11px;color:#C0392B;font-weight:700">${existing.customStart}–${existing.customEnd}</span>`:''}
       </label>
     </div>
@@ -472,7 +445,6 @@ function openModal(staff,ds,existing){
   </div>`;
   document.body.appendChild(div);
 
-  // Show/hide custom time inputs on radio change, update border styles
   div.querySelectorAll('input[name="mode"]').forEach(radio=>{
     radio.addEventListener('change',()=>{
       const val=radio.value;
@@ -481,7 +453,7 @@ function openModal(staff,ds,existing){
         const r=lbl.querySelector('input[name="mode"]');
         if(!r)return;
         const active=r.value===val;
-        const colors={default:{border:'#0F6E56',bg:'#E1F5EE'},leave:{border:'#185FA5',bg:'#E6F1FB'},offday:{border:'#5F5E5A',bg:'#F1EFE8'},compoff:{border:'#1B6B3A',bg:'#F0FBF4'},custom:{border:'#C0392B',bg:'#FAECE7'}};
+        const colors={default:{border:'#0F6E56',bg:'#E1F5EE'},leave:{border:'#185FA5',bg:'#E6F1FB'},offday:{border:'#5F5E5A',bg:'#F1EFE8'},custom:{border:'#C0392B',bg:'#FAECE7'}};
         lbl.style.border=`1.5px solid ${active?colors[r.value].border:'#e0dfd9'}`;
         lbl.style.background=active?colors[r.value].bg:'transparent';
       });
@@ -510,8 +482,6 @@ function saveModal(){
     setEvent(pendingCell.staff.id,pendingCell.ds,{type:'leave'});
   } else if(mode==='offday'){
     setEvent(pendingCell.staff.id,pendingCell.ds,{type:'offday'});
-  } else if(mode==='compoff'){
-    setEvent(pendingCell.staff.id,pendingCell.ds,{type:'compoff'});
   } else if(mode==='custom'){
     const custStart=document.getElementById('cust-start')?document.getElementById('cust-start').value:'';
     const custEnd=document.getElementById('cust-end')?document.getElementById('cust-end').value:'';
@@ -522,7 +492,7 @@ function saveModal(){
   const el=document.getElementById('modal-overlay-wrap');
   if(el)el.remove();
   pendingCell=null;
-  saveEvents().then(()=>showToast('✓ Đã lưu'));
+  showToast('✓ Đã lưu');
   renderTabContent();
 }
 
@@ -554,7 +524,12 @@ function renderLogHTML(){
 
 function bindLogDeletes(){document.querySelectorAll('.del-btn').forEach(btn=>{btn.addEventListener('click',()=>{delEvent(btn.dataset.key);renderTabContent();});});}
 
-render();
+async function init(){
+  document.getElementById('app').innerHTML='<div class="empty-state">⏳ Đang tải dữ liệu lịch…</div>';
+  await loadEvents();
+  render();
+}
+init();
 </script>
 </body>
 </html>
