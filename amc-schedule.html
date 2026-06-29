@@ -359,7 +359,7 @@ function renderGridHTML(editable){
         else if(ev.note)inner+=`<span class="log-time">${ev.note.substring(0,12)}</span>`;
       } else if(!sched){
         if(hasCustom){
-          inner=`<span class="status-badge s-work">${ev.customStart}–${ev.customEnd}</span><span class="log-time">Làm thêm</span>`;
+          inner=`<span class="status-badge s-work">${ev.customStart}–${ev.customEnd}</span><span class="log-time">Đổi ngày</span>`;
           if(ev.note)inner+=`<span class="log-time">${ev.note.substring(0,12)}</span>`;
         } else {
           cellStyle+='background:#f5f4f0;';
