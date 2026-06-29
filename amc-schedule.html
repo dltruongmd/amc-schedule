@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Bảng theo dõi nhân sự – Anh Mỹ Clinic</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css"/>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f8f8f7;color:#1a1a18;padding:1rem;max-width:1100px;margin:0 auto}
@@ -101,6 +103,17 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <div id="app"></div>
 
 <script>
+firebase.initializeApp({
+  apiKey:"AIzaSyDvIKZp2cmm3pZR9w9adk0QFbnPFoLwJYI",
+  authDomain:"amc-schedule.firebaseapp.com",
+  databaseURL:"https://amc-schedule-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId:"amc-schedule",
+  storageBucket:"amc-schedule.firebasestorage.app",
+  messagingSenderId:"267295863955",
+  appId:"1:267295863955:web:1493509dc68a8bc0c9c966"
+});
+const fbRef=firebase.database().ref('amc_schedule_v1');
+
 const ADMIN_PASS='anhmyclinic2025';
 const EPOCH_MONDAY=new Date('2025-01-06T00:00:00');
 
@@ -137,13 +150,38 @@ let events={};
 let isAdmin=false,currentMonday=getMonday(new Date()),activeTab='week',pendingCell=null;
 
 const STORAGE_KEY='amc_schedule_events';
-function saveEvents(){
-  try{localStorage.setItem(STORAGE_KEY,JSON.stringify(events));}
-  catch(e){console.error('Lỗi lưu:',e);showToast('⚠ Không lưu được — thử lại');}
+function saveLocal(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(events));}catch(e){}}
+function loadLocal(){try{const r=localStorage.getItem(STORAGE_KEY);if(r)events=JSON.parse(r);}catch(e){events={};}}
+function saveEvents(){saveLocal();}
+
+async function saveToFirebase(){
+  saveLocal();
+  try{
+    await fbRef.set(events);
+    showToast('☁ Đã lưu lên cloud');
+  }catch(e){
+    console.error(e);
+    showToast('⚠ Lưu cloud thất bại — đã lưu cục bộ');
+  }
 }
-function loadEvents(){
-  try{const r=localStorage.getItem(STORAGE_KEY);if(r)events=JSON.parse(r);}
-  catch(e){events={};}
+
+function setupRealtimeListener(){
+  fbRef.on('value',snapshot=>{
+    const data=snapshot.val();
+    const incoming=data||{};
+    if(JSON.stringify(incoming)===JSON.stringify(events))return;
+    events=incoming;
+    saveLocal();
+    if(pendingCell)return;
+    if(!isAdmin){
+      const summary=document.querySelector('.summary-bar');
+      if(summary)summary.outerHTML=renderSummaryHTML();
+      const grid=document.querySelector('.grid-wrap');
+      if(grid)grid.outerHTML=renderGridHTML(false);
+    } else if(activeTab==='week'){
+      renderTabContent();
+    }
+  });
 }
 
 function showToast(msg){
@@ -265,7 +303,7 @@ function renderTabContent(){
     </div>`;
     tc.innerHTML=toolbar+renderWeekNavHTML()+renderSummaryHTML()+renderLegendHTML()+renderGridHTML(true)+'<div class="hint-bar">💡 Nhấn vào ô để ghi nhận sự kiện hoặc chỉnh giờ thực tế</div>';
     bindWeekNav();bindCells();
-    document.getElementById('btn-save-all').addEventListener('click',()=>{saveEvents();showToast('✓ Đã lưu lịch!');});
+    document.getElementById('btn-save-all').addEventListener('click',saveToFirebase);
     document.getElementById('export-btn2').addEventListener('click',exportData);
     document.getElementById('import-btn2').addEventListener('click',importData);
   } else {tc.innerHTML=renderLogHTML();bindLogDeletes();}
@@ -528,8 +566,9 @@ function renderLogHTML(){
 
 function bindLogDeletes(){document.querySelectorAll('.del-btn').forEach(btn=>{btn.addEventListener('click',()=>{delEvent(btn.dataset.key);renderTabContent();});});}
 
-loadEvents();
+loadLocal();
 render();
+setupRealtimeListener();
 </script>
 </body>
 </html>
