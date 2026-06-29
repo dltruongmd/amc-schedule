@@ -113,8 +113,8 @@ const STAFF=[
   {id:'tuong', name:'Ds. Tưởng',  role:'Dược sĩ', sched:{0:'alt',1:['08:00','16:30'],2:['08:00','16:30'],3:['08:00','16:30'],4:['08:00','16:30'],5:['08:00','16:30'],6:['08:00','16:30']}, altSunSched:['08:00','13:30']},
   {id:'xntan', name:'ThS. Tân',   role:'Xét nghiệm', sched:{0:null,1:['09:00','16:30'],2:['09:00','16:30'],3:['09:00','16:30'],4:['09:00','16:30'],5:['09:00','16:30'],6:['09:00','16:30']}},
   {id:'nhan',  name:'ĐD Nhân',    role:'BVDL', sched:{0:null,1:['16:45','19:30'],2:null,3:['16:45','19:30'],4:null,5:null,6:null}},
-  {id:'bvan',  name:'BV An',      role:'Bảo vệ', sched:'shift'},
-  {id:'dung',  name:'Dũng',       role:'Bảo vệ', sched:'shift'},
+  {id:'bvan',  name:'BV An',      role:'Bảo vệ', sched:'shift', shiftParity:0},
+  {id:'dung',  name:'Dũng',       role:'Bảo vệ', sched:'shift', shiftParity:1},
   {id:'uyen',  name:'HL Uyên',    role:'', sched:{0:null,1:['06:00','15:30'],2:['06:00','15:30'],3:['06:00','15:30'],4:['06:00','15:30'],5:['06:00','15:30'],6:['06:00','15:30']}},
   {id:'hong',  name:'KTV. Hồng',  role:'KTV Da', flexOff:1, sched:{0:['08:30','13:00'],1:['11:00','19:30'],2:['11:00','19:30'],3:['11:00','19:30'],4:['11:00','19:30'],5:['11:00','19:30'],6:['11:00','19:30']}},
   {id:'thao',  name:'KTV. Thảo',  role:'KTV Da', flexOff:1, sched:{0:['08:00','13:30'],1:['08:30','16:30'],2:['08:00','16:30'],3:['08:30','16:30'],4:['08:00','16:30'],5:['08:30','16:30'],6:['08:00','16:30']}},
@@ -196,8 +196,13 @@ function getEvent(sid,ds){return events[sid+'__'+ds]||null;}
 function setEvent(sid,ds,ev){events[sid+'__'+ds]=ev;saveEvents();}
 function delEvent(key){delete events[key];saveEvents();}
 
+function dayIndex(d){return Math.round((new Date(fmtDate(d)+'T00:00:00').getTime()-EPOCH_MONDAY.getTime())/(24*3600*1000));}
+
 function schedLabel(staff,dow,dayDate){
-  if(staff.sched==='shift')return{text:'≈ 24h luân phiên',isShift:true};
+  if(staff.sched==='shift'){
+    const works=dayIndex(dayDate)%2===staff.shiftParity;
+    return{text:works?'Ngày làm':'Ngày nghỉ',isShift:true,isWorkDay:works};
+  }
   if(dow===0&&staff.sched[0]==='alt'){
     if(weekIndex(getMonday(dayDate))%2===0)return{text:staff.altSunSched[0]+'–'+staff.altSunSched[1],start:staff.altSunSched[0],end:staff.altSunSched[1],note:'CN làm'};
     return null;
@@ -366,7 +371,8 @@ function renderGridHTML(editable){
           inner=`<span class="status-badge s-offday">Nghỉ lịch</span>`;
         }
       } else if(sched.isShift){
-        inner=`<span class="status-badge s-work">${sched.text}</span>`;
+        if(sched.isWorkDay)inner=`<span class="status-badge s-work">${sched.text}</span>`;
+        else{cellStyle+='background:#f5f4f0;';inner=`<span class="status-badge s-offday">${sched.text}</span>`;}
       } else {
         if(hasCustom){
           inner+=`<span class="time-strike">${sched.start}–${sched.end}</span>`;
