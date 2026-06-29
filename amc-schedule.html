@@ -137,27 +137,13 @@ let events={};
 let isAdmin=false,currentMonday=getMonday(new Date()),activeTab='week',pendingCell=null;
 
 const STORAGE_KEY='amc_schedule_events';
-let _saveTimer=null;
-async function saveEvents(){
-  // debounce rapid successive writes
-  clearTimeout(_saveTimer);
-  _saveTimer=setTimeout(async()=>{
-    try{
-      await window.storage.set(STORAGE_KEY,JSON.stringify(events),true);
-    }catch(e){
-      console.error('Lỗi lưu dữ liệu:',e);
-      showToast('⚠ Không lưu được — thử lại');
-    }
-  },150);
+function saveEvents(){
+  try{localStorage.setItem(STORAGE_KEY,JSON.stringify(events));}
+  catch(e){console.error('Lỗi lưu:',e);showToast('⚠ Không lưu được — thử lại');}
 }
-async function loadEvents(){
-  try{
-    const r=await window.storage.get(STORAGE_KEY,true);
-    if(r&&r.value)events=JSON.parse(r.value);
-  }catch(e){
-    // key chưa tồn tại lần đầu — bình thường
-    events={};
-  }
+function loadEvents(){
+  try{const r=localStorage.getItem(STORAGE_KEY);if(r)events=JSON.parse(r);}
+  catch(e){events={};}
 }
 
 function showToast(msg){
@@ -542,12 +528,8 @@ function renderLogHTML(){
 
 function bindLogDeletes(){document.querySelectorAll('.del-btn').forEach(btn=>{btn.addEventListener('click',()=>{delEvent(btn.dataset.key);renderTabContent();});});}
 
-async function init(){
-  document.getElementById('app').innerHTML='<div class="empty-state">⏳ Đang tải dữ liệu lịch…</div>';
-  await loadEvents();
-  render();
-}
-init();
+loadEvents();
+render();
 </script>
 </body>
 </html>
