@@ -130,6 +130,7 @@ const STATUS_META={
   leave:  {label:'Nghỉ phép',    bg:'#E6F1FB',color:'#185FA5',dot:'#378ADD'},
   holiday:{label:'Nghỉ lễ',      bg:'#FBEAF0',color:'#993556',dot:'#D4537E'},
   dayoff: {label:'Ca nghỉ',      bg:'#EEEDFE',color:'#3C3489',dot:'#7F77DD'},
+  swapday:{label:'Đổi ngày làm', bg:'#FFF3E0',color:'#E65100',dot:'#FF6D00'},
 };
 
 let events={};
@@ -298,13 +299,15 @@ function bindWeekNav(){
 
 function renderSummaryHTML(){
   const dates=getDayDates();let a=0,e=0,l=0,h=0,d=0;
-  dates.forEach(dt=>{const ds=fmtDate(dt);STAFF.forEach(s=>{const ev=getEvent(s.id,ds);if(ev&&ev.type){if(ev.type==='absent')a++;if(ev.type==='early')e++;if(ev.type==='leave')l++;if(ev.type==='holiday')h++;if(ev.type==='dayoff')d++;}});});
-  return`<div class="summary-bar">
+  let sw=0;
+  dates.forEach(dt=>{const ds=fmtDate(dt);STAFF.forEach(s=>{const ev=getEvent(s.id,ds);if(ev&&ev.type){if(ev.type==='absent')a++;if(ev.type==='early')e++;if(ev.type==='leave')l++;if(ev.type==='holiday')h++;if(ev.type==='dayoff')d++;if(ev.type==='swapday')sw++;}});});
+  return`<div class="summary-bar" style="grid-template-columns:repeat(6,1fr)">
     <div class="sum-card"><div class="val" style="color:#993C1D">${a}</div><div class="lbl">Nghỉ đột xuất</div></div>
     <div class="sum-card"><div class="val" style="color:#854F0B">${e}</div><div class="lbl">Về sớm</div></div>
     <div class="sum-card"><div class="val" style="color:#185FA5">${l}</div><div class="lbl">Nghỉ phép</div></div>
     <div class="sum-card"><div class="val" style="color:#993556">${h}</div><div class="lbl">Nghỉ lễ/bù</div></div>
     <div class="sum-card"><div class="val" style="color:#3C3489">${d}</div><div class="lbl">Ca nghỉ</div></div>
+    <div class="sum-card"><div class="val" style="color:#E65100">${sw}</div><div class="lbl">Đổi ngày làm</div></div>
   </div>`;
 }
 
@@ -317,6 +320,7 @@ function renderLegendHTML(){
     <div class="leg-item"><div class="leg-dot" style="background:#378ADD"></div>Nghỉ phép</div>
     <div class="leg-item"><div class="leg-dot" style="background:#D4537E"></div>Nghỉ lễ</div>
     <div class="leg-item"><div class="leg-dot" style="background:#7F77DD"></div>Ca nghỉ</div>
+    <div class="leg-item"><div class="leg-dot" style="background:#FF6D00"></div>Đổi ngày làm</div>
     <div class="leg-item"><div class="leg-dot" style="background:#C0392B"></div><span style="color:#C0392B;font-weight:700">Giờ thực tế</span></div>
   </div>`;
 }
@@ -399,9 +403,11 @@ function openModal(staff,ds,existing){
   const isLeave=existing&&existing.type==='leave';
 
   const isOffday=existing&&existing.type==='offday';
+  const isSwapday=existing&&existing.type==='swapday';
   let curMode='default';
   if(isLeave)curMode='leave';
   else if(isOffday)curMode='offday';
+  else if(isSwapday)curMode='swapday';
   else if(hasCustom)curMode='custom';
 
   const origStart=sched&&!sched.isShift?sched.start:'';
@@ -427,6 +433,10 @@ function openModal(staff,ds,existing){
         <input type="radio" name="mode" value="offday" ${curMode==='offday'?'checked':''} style="accent-color:#5F5E5A"/>
         <span style="font-size:13px;font-weight:${curMode==='offday'?'600':'400'}">Nghỉ lịch</span>
       </label>`:''}
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px 10px;border-radius:6px;border:1.5px solid ${curMode==='swapday'?'#E65100':'#e0dfd9'};background:${curMode==='swapday'?'#FFF3E0':'transparent'}">
+        <input type="radio" name="mode" value="swapday" ${curMode==='swapday'?'checked':''} style="accent-color:#E65100"/>
+        <span style="font-size:13px;font-weight:${curMode==='swapday'?'600':'400'};color:${curMode==='swapday'?'#E65100':'inherit'}">Đổi ngày làm</span>
+      </label>
       <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px 10px;border-radius:6px;border:1.5px solid ${curMode==='custom'?'#C0392B':'#e0dfd9'};background:${curMode==='custom'?'#FAECE7':'transparent'}">
         <input type="radio" name="mode" value="custom" ${curMode==='custom'?'checked':''} style="accent-color:#C0392B"/>
         <span style="font-size:13px;font-weight:${curMode==='custom'?'600':'400'};color:${curMode==='custom'?'#C0392B':'inherit'}">${origStart?'Theo giờ mới':'Vào làm (chọn giờ)'}</span>
@@ -453,7 +463,7 @@ function openModal(staff,ds,existing){
         const r=lbl.querySelector('input[name="mode"]');
         if(!r)return;
         const active=r.value===val;
-        const colors={default:{border:'#0F6E56',bg:'#E1F5EE'},leave:{border:'#185FA5',bg:'#E6F1FB'},offday:{border:'#5F5E5A',bg:'#F1EFE8'},custom:{border:'#C0392B',bg:'#FAECE7'}};
+        const colors={default:{border:'#0F6E56',bg:'#E1F5EE'},leave:{border:'#185FA5',bg:'#E6F1FB'},offday:{border:'#5F5E5A',bg:'#F1EFE8'},swapday:{border:'#E65100',bg:'#FFF3E0'},custom:{border:'#C0392B',bg:'#FAECE7'}};
         lbl.style.border=`1.5px solid ${active?colors[r.value].border:'#e0dfd9'}`;
         lbl.style.background=active?colors[r.value].bg:'transparent';
       });
@@ -482,6 +492,8 @@ function saveModal(){
     setEvent(pendingCell.staff.id,pendingCell.ds,{type:'leave'});
   } else if(mode==='offday'){
     setEvent(pendingCell.staff.id,pendingCell.ds,{type:'offday'});
+  } else if(mode==='swapday'){
+    setEvent(pendingCell.staff.id,pendingCell.ds,{type:'swapday'});
   } else if(mode==='custom'){
     const custStart=document.getElementById('cust-start')?document.getElementById('cust-start').value:'';
     const custEnd=document.getElementById('cust-end')?document.getElementById('cust-end').value:'';
